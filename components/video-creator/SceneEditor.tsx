@@ -19,8 +19,40 @@ export function SceneEditor() {
     setIsGeneratingImages(true);
 
     try {
-      // TODO: 画像生成API呼び出し（Issue #4で実装）
-      // 仮のデモ画像URL
+      // 画像プロンプトを抽出
+      const prompts = scenes.map((s) => s.imagePrompt);
+
+      // 画像生成API呼び出し (GPT Image 1 Mini使用)
+      const response = await fetch('/api/generate-images', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompts,
+          model: 'gpt-image-1-mini',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate images');
+      }
+
+      const data = await response.json();
+
+      // 各シーンに画像URLを設定
+      data.images.forEach((imageUrl: string, index: number) => {
+        if (scenes[index]) {
+          updateScene(scenes[index].id, {
+            imageUrl,
+          });
+        }
+      });
+    } catch (error) {
+      console.error('Failed to generate images:', error);
+      alert('画像生成に失敗しました。デモ画像を使用します。');
+
+      // フォールバック: デモ画像
       const demoImages = [
         'https://images.unsplash.com/photo-1633356122544-f134324a6cee',
         'https://images.unsplash.com/photo-1620712943543-bcc4688e7485',
@@ -33,10 +65,7 @@ export function SceneEditor() {
         updateScene(scenes[i].id, {
           imageUrl: demoImages[i % demoImages.length] + '?w=1080&h=1920&fit=crop',
         });
-        await new Promise((resolve) => setTimeout(resolve, 500));
       }
-    } catch (error) {
-      console.error('Failed to generate images:', error);
     } finally {
       setIsGeneratingImages(false);
     }

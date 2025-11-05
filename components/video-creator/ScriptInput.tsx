@@ -18,25 +18,30 @@ export function ScriptInput() {
     setIsGenerating(true);
 
     try {
-      // TODO: API呼び出し（Issue #4で実装）
-      // 仮のデモデータ
-      const demoScenes = Array.from({ length: numberOfScenes }, (_, i) => ({
-        id: i + 1,
-        text: `シーン ${i + 1}: ${script.split('\n')[i % 3] || 'サンプルテキスト'}`,
-        imagePrompt: `Scene ${i + 1} visual: modern, professional, high quality`,
-        duration: 180, // 6秒 (180 frames at 30fps)
-        textStyle: {
-          fontSize: 48,
-          fontWeight: 'bold',
-          color: '#ffffff',
-          position: 'bottom' as const,
+      // Gemini 2.5 Flash APIを呼び出し
+      const response = await fetch('/api/generate-script', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      }));
+        body: JSON.stringify({
+          topic: script,
+          template,
+          numberOfScenes,
+          duration: numberOfScenes * 6, // 1シーン6秒
+        }),
+      });
 
-      setScenes(demoScenes);
+      if (!response.ok) {
+        throw new Error('Failed to generate script');
+      }
+
+      const data = await response.json();
+      setScenes(data.scenes);
       setCurrentStep('scenes');
     } catch (error) {
       console.error('Failed to generate scenes:', error);
+      alert('台本生成に失敗しました。もう一度お試しください。');
     } finally {
       setIsGenerating(false);
     }
